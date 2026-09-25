@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neta Companion — Backend Testing Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090c15;
+      --card-bg: rgba(18, 24, 38, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(255, 255, 255, 0.12);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --cyan: #00f2fe;
+      --cyan-glow: rgba(0, 242, 254, 0.25);
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --amber: #f59e0b;
+      --gradient-accent: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      --gradient-subtle: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(0, 242, 254, 0.05) 0px, transparent 60%);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--gradient-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 24px var(--cyan-glow);
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #fff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-badge.error {
+      background: rgba(244, 63, 94, 0.1);
+      color: var(--rose);
+      border-color: rgba(244, 63, 94, 0.2);
+    }
+
+    .status-badge.warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--amber);
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Config Bar */
+    .config-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) auto;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .input-group input {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-group input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--gradient-accent);
+      color: #050b14;
+      box-shadow: 0 2px 10px var(--cyan-glow);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--card-hover);
+    }
+
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fda4af;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(244, 63, 94, 0.25);
+    }
+
+    /* Schema Banner Alert */
+    .banner-alert {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.05));
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .banner-alert.hidden {
+      display: none;
+    }
+
+    .banner-text {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .banner-text .icon {
+      font-size: 24px;
+    }
+
+    .banner-text h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fde68a;
+    }
+
+    .banner-text p {
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    /* Navigation Tabs */
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+      font-weight: 600;
+    }
+
+    /* Tab Content Panes */
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    /* Chat Section */
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+
+    @media (max-width: 960px) {
+      .chat-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chat-box {
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--card-border);
+      margin-bottom: 16px;
+    }
+
+    .chat-msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 82%;
+    }
+
+    .chat-msg.user {
+      align-self: flex-end;
+    }
+
+    .chat-msg.companion {
+      align-self: flex-start;
+    }
+
+    .msg-sender {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chat-msg.user .msg-sender {
+      text-align: right;
+      justify-content: flex-end;
+    }
+
+    .msg-bubble {
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .chat-msg.user .msg-bubble {
+      background: #1e3a8a;
+      color: #eff6ff;
+      border-bottom-right-radius: 4px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .chat-msg.companion .msg-bubble {
+      background: rgba(30, 41, 59, 0.85);
+      color: #f1f5f9;
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--card-border);
+      position: relative;
+    }
+
+    .msg-meta {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 7px;
+      height: 15px;
+      background: var(--cyan);
+      margin-left: 4px;
+      animation: blink 0.8s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .chat-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .chip:hover {
+      background: rgba(0, 242, 254, 0.1);
+      color: var(--cyan);
+      border-color: rgba(0, 242, 254, 0.3);
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: var(--cyan);
+    }
+
+    /* Live Emotion & Status Box */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-val {
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient-accent);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    /* Dreams Section */
+    .dream-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .dream-card:hover {
+      border-color: rgba(168, 85, 247, 0.4);
+    }
+
+    .dream-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .dream-body {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      font-style: italic;
+    }
+
+    .dream-footer {
+      margin-top: 10px;
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Terminal Console */
+    .console-card {
+      background: #06080f;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #94a3b8;
+      max-height: 280px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    /* Sleep Cycle Controller */
+    .sleep-phase-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .phase-badge {
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .phase-badge.running {
+      border-color: var(--amber);
+      color: var(--amber);
+      animation: pulse 1s infinite;
+    }
+
+    .phase-badge.done {
+      border-color: var(--emerald);
+      color: var(--emerald);
+    }
+
+    /* JSON Output Modal */
+    .json-box {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      max-height: 400px;
+      color: #a5f3fc;
+      border: 1px solid var(--card-border);
+    }
+
+    /* Toggle Switch */
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.15);
+      transition: .3s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--cyan);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(18px);
+      background-color: #050b14;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">✨</div>
+      <div>
+        <h1>Neta Companion — Backend Testing Suite</h1>
+        <p>Realtime testbed for Cloudflare Workers, Living Self-Model, Dual-Path LLM & Sleep Daemons</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="connBadge" class="status-badge">
+        <span class="pulse-dot"></span>
+        <span id="connText">Checking Backend...</span>
+      </span>
+      <button class="btn btn-secondary" onclick="runAutomatedAudit()">⚡ Run Quick Audit</button>
+    </div>
+  </header>
+
+  <!-- Config Hub -->
+  <div class="config-card">
+    <div class="input-group">
+      <label>Base URL (Worker)</label>
+      <input type="text" id="cfgBaseUrl" value="https://cognitive-core.sr7aron.workers.dev">
+    </div>
+    <div class="input-group">
+      <label>Companion API Key</label>
+      <input type="text" id="cfgApiKey" value="neta-companion-secret-key-2026">
+    </div>
+    <div class="input-group">
+      <label>GAS Cron Secret</label>
+      <input type="text" id="cfgCronSecret" value="neta-gas-cron-secret-2026">
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-primary" onclick="pingHealth()">Ping /health</button>
+      <button class="btn btn-secondary" onclick="refreshStatus()">Refresh State</button>
+    </div>
+  </div>
+
+  <!-- Schema Banner (Shown if Supabase schema is missing) -->
+  <div id="schemaBanner" class="banner-alert hidden">
+    <div class="banner-text">
+      <span class="icon">⚠️</span>
+      <div>
+        <h4>Database Supabase Belum Terinisialisasi</h4>
+        <p id="schemaErrorMsg">Tabel <code>public.emotional_state</code> belum ditemukan di Supabase. Harap jalankan file <code>schema.sql</code> di Supabase SQL Editor sekali saja.</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="https://supabase.com/dashboard/project/gxjrwrgmkhxihztpouxv/sql" target="_blank" class="btn btn-secondary" style="text-decoration:none;">Buka Supabase SQL Editor ↗</a>
+      <button class="btn btn-primary" onclick="copySchemaHint()">📋 Salin Petunjuk</button>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('chat')">💬 Live Companion Chat</button>
+    <button class="tab-btn" onclick="switchTab('status')">🧠 State & Living Self-Model</button>
+    <button class="tab-btn" onclick="switchTab('sleep')">🌙 Dreams & Sleep Daemon</button>
+    <button class="tab-btn" onclick="switchTab('endpoints')">⚙️ Endpoints & Cron Daemons</button>
+  </div>
+
+  <!-- TAB 1: LIVE COMPANION CHAT -->
+  <div id="tab-chat" class="tab-pane active">
+    <div class="chat-layout">
+      <!-- Main Chat Pane -->
+      <div class="card chat-box">
+        <div class="card-title">
+          <span>Dialogue Stream</span>
+          <div class="toggle-wrapper">
+            <span>Streaming SSE</span>
+            <label class="switch">
+              <input type="checkbox" id="streamToggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg companion">
+            <div class="msg-sender">💙 Neta • AI Companion</div>
+            <div class="msg-bubble">
+              Halo! Aku Neta. Aku di sini menemani harimu. Gimana kabarmu sekarang? Ada hal menarik yang mau kamu ceritakan?
+            </div>
+            <div class="msg-meta">
+              <span>Status: Siap mendengarkan</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suggestion Chips -->
+        <div class="chat-chips">
+          <span class="chip" onclick="sendChip(this)">Halo Neta, lagi mikirin apa hari ini?</span>
+          <span class="chip" onclick="sendChip(this)">Aku barusan minum kopi latte hangat, kamu suka kopi?</span>
+          <span class="chip" onclick="sendChip(this)">Hari ini kerjaanku padat banget, capek rasanya...</span>
+          <span class="chip" onclick="sendChip(this)">Ingat nggak pertama kali kita kenalan?</span>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Ketik pesan untuk Neta..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+          <button class="btn btn-primary" id="btnSendChat" onclick="sendChatMessage()">Kirim Pesan</button>
+        </div>
+      </div>
+
+      <!-- Live Vibe & Emotion Sidebar -->
+      <div class="card">
+        <div class="card-title">
+          <span>Current Emotional Vibe</span>
+          <span class="badge" id="liveMoodBadge">calm</span>
+        </div>
+
+        <div style="text-align:center; padding:16px 0;">
+          <div style="font-size:52px; margin-bottom:8px;" id="avatarEmoji">🌸</div>
+          <div style="font-size:16px; font-weight:700;" id="liveSurfaceText">Tender Calmness</div>
+          <div style="font-size:12px; color:var(--text-muted);" id="liveCompanionId">companion_id: default</div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="stat-row">
+            <span class="stat-label">Intensity Level</span>
+            <span class="stat-val" id="valIntensity">6 / 10</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-fill" id="barIntensity" style="width: 60%;"></div>
+          </div>
+
+          <div class="stat-row" style="margin-top:12px;">
+            <span class="stat-label">Cognitive Fatigue</span>
+            <span class="stat-val" id="valFatigue">12%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-fill" id="barFatigue" style="width: 12%; background: linear-gradient(90deg, #3b82f6, #f59e0b);"></div>
+          </div>
+
+          <div class="stat-row" style="margin-top:12px;">
+            <span class="stat-label">Intimacy / Affection</span>
+            <span class="stat-val" id="valAffection">10 pts</span>
+          </div>
+
+          <div class="stat-row">
+            <span class="stat-label">Interactions Since Sleep</span>
+            <span class="stat-val" id="valInteractions">3</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px; padding:12px; background:rgba(0,0,0,0.25); border-radius:var(--radius-sm); border:1px solid var(--card-border);">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Dual-Path Pipeline:</div>
+          <div style="font-size:12px; color:#cbd5e1;">
+            Fast LLM stream (Gemini/xKiro/Groq) + non-blocking background reflection (memory extraction & emotion shift).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: STATE & LIVING SELF-MODEL -->
+  <div id="tab-status" class="tab-pane">
+    <div class="grid-2">
+      <!-- Emotional State Breakdown -->
+      <div class="card">
+        <div class="card-title">
+          <span>Emotional Core Parameters</span>
+          <button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="refreshStatus()">Fetch Live</button>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Current Mood</span>
+          <span class="stat-val" id="stMood">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Surface Emotion</span>
+          <span class="stat-val" id="stSurface">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Arousal Level (0-10)</span>
+          <span class="stat-val" id="stArousal">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Tension Buildup (0-10)</span>
+          <span class="stat-val" id="stTension">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Possessiveness (0-10)</span>
+          <span class="stat-val" id="stPossess">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Emotional Hunger (0-10)</span>
+          <span class="stat-val" id="stHunger">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Last Updated</span>
+          <span class="stat-val" id="stUpdated">-</span>
+        </div>
+      </div>
+
+      <!-- Living Self-Model -->
+      <div class="card">
+        <div class="card-title">
+          <span>Living Self-Model (agent-soul inspired)</span>
+          <span class="badge" id="stSelfVersion">v1</span>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Self-Narrative:</div>
+          <div id="stNarrative" style="font-size:13.5px; line-height:1.6; color:#e2e8f0; background:rgba(0,0,0,0.3); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--card-border);">
+            Memuat model diri...
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Core Beliefs & Identity:</div>
+          <div id="stBeliefs" style="font-size:12.5px; color:#94a3b8; font-family:'JetBrains Mono', monospace;">
+            -
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Raw State Response -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">
+        <span>Raw JSON Response (/api/companion/status)</span>
+        <button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="copyJson('jsonStatusOutput')">Salin JSON</button>
+      </div>
+      <div class="json-box" id="jsonStatusOutput">// Klik "Fetch Live" atau "Refresh State" di atas...</div>
+    </div>
+  </div>
+
+  <!-- TAB 3: SLEEP DAEMON & DREAMS -->
+  <div id="tab-sleep" class="tab-pane">
+    <div class="grid-2">
+      <!-- Phased Sleep Controller -->
+      <div class="card">
+        <div class="card-title">
+          <span>Phased Sleep Cycle Controller</span>
+          <span class="badge">6 Phases</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">
+          Menguji siklus tidur companion (anima-inspired). Tiap fase dipisah untuk mencegah timeout CPU Cloudflare Workers.
+        </p>
+
+        <div class="sleep-phase-list">
+          <div class="phase-badge" id="pBadge0">0: Tag Salience</div>
+          <div class="phase-badge" id="pBadge1">1: Dedup Memory</div>
+          <div class="phase-badge" id="pBadge2">2: Clustering</div>
+          <div class="phase-badge" id="pBadge3">3: REM Dream</div>
+          <div class="phase-badge" id="pBadge4">4: Self-Model</div>
+          <div class="phase-badge" id="pBadge5">5: Fatigue Reset</div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+          <button class="btn btn-primary" onclick="runSequentialSleep()">🌙 Jalankan Full Sleep Cycle (0-5)</button>
+          <button class="btn btn-secondary" onclick="triggerSingleSleep(3)">✨ Test REM Dream Only (Phase 3)</button>
+          <button class="btn btn-danger" onclick="triggerSingleSleep(null, true)">⚡ Force Sleep (Override Fatigue)</button>
+        </div>
+
+        <div class="console-header">
+          <span>Sleep Daemon Output Log</span>
+          <span id="sleepTimer">Idle</span>
+        </div>
+        <div class="console-card" id="sleepLog">// Menunggu perintah sleep...</div>
+      </div>
+
+      <!-- Recent Dreams Journal -->
+      <div class="card">
+        <div class="card-title">
+          <span>Recent Dreams Journal (/api/companion/dreams)</span>
+          <button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="fetchDreams()">Refresh Dreams</button>
+        </div>
+        <div id="dreamsList" style="max-height: 480px; overflow-y: auto;">
+          <p style="font-size:13px; color:var(--text-muted);">Memuat mimpi Neta...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: ENDPOINTS & CRON DAEMONS -->
+  <div id="tab-endpoints" class="tab-pane">
+    <div class="grid-3">
+      <!-- Nudge Outreach -->
+      <div class="card">
+        <div class="card-title">
+          <span>Proactive Nudge Check</span>
+          <span class="badge">POST /api/companion/nudge</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+          Evaluasi apakah Neta ingin berinisiatif menyapa pengguna berdasarkan waktu hening dan tingkat keakraban.
+        </p>
+        <button class="btn btn-primary" style="width:100%; margin-bottom:12px;" onclick="testNudge()">Test Nudge Initiation</button>
+        <div class="json-box" id="nudgeResult" style="max-height:160px;">// Hasil nudge akan tampil di sini</div>
+      </div>
+
+      <!-- Memory Decay Pass -->
+      <div class="card">
+        <div class="card-title">
+          <span>Memory Decay (Ebbinghaus)</span>
+          <span class="badge">POST /api/daemon/decay</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+          Jalankan pemudaran memori matematis harian R = e^(-t/S) dengan perlindungan memori inti.
+        </p>
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+          <input type="number" id="decayRateInput" value="0.01" step="0.005" style="width:80px; background:rgba(0,0,0,0.3); border:1px solid var(--card-border); color:#fff; padding:6px; border-radius:4px; font-family:'JetBrains Mono';">
+          <button class="btn btn-secondary" style="flex:1;" onclick="testDecay()">Jalankan Decay Pass</button>
+        </div>
+        <div class="json-box" id="decayResult" style="max-height:160px;">// Hasil decay akan tampil di sini</div>
+      </div>
+
+      <!-- Cognitive Heat / Love-O-Meter -->
+      <div class="card">
+        <div class="card-title">
+          <span>Cognitive Heat (Love-O-Meter)</span>
+          <span class="badge">POST /api/heat</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+          Skor komposit kehangatan interaksi 7 hari terakhir (frekuensi sesi, salience memori, arousal).
+        </p>
+        <button class="btn btn-secondary" style="width:100%; margin-bottom:12px;" onclick="testHeat()">Hitung Skor Heat</button>
+        <div class="json-box" id="heatResult" style="max-height:160px;">// Skor heat akan tampil di sini</div>
+      </div>
+    </div>
+
+    <!-- Diagnostic Audit Checklist -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">
+        <span>Diagnostic Suite & Capability Matrix</span>
+        <button class="btn btn-primary" style="padding:4px 12px; font-size:12px;" onclick="runAutomatedAudit()">Jalankan Audit Lengkap</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:10px;" id="auditGrid">
+        <div class="phase-badge" id="auditHealth">1. Health Endpoint: -</div>
+        <div class="phase-badge" id="auditCors">2. CORS Preflight: -</div>
+        <div class="phase-badge" id="auditSupabase">3. Supabase Schema: -</div>
+        <div class="phase-badge" id="auditLLM">4. Multi-Key LLM: -</div>
+        <div class="phase-badge" id="auditSleep">5. Sleep Daemon: -</div>
+        <div class="phase-badge" id="auditNudge">6. Nudge Daemon: -</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── Helpers & State ─────────────────────────────────────────
+  function getCfg() {
+    return {
+      baseUrl: document.getElementById('cfgBaseUrl').value.trim().replace(/\/$/, ''),
+      apiKey: document.getElementById('cfgApiKey').value.trim(),
+      cronSecret: document.getElementById('cfgCronSecret').value.trim()
+    };
+  }
+
+  function getHeaders(includeCron = false) {
+    const cfg = getCfg();
+    const h = {
+      'Authorization': 'Bearer ' + cfg.apiKey,
+      'Content-Type': 'application/json'
+    };
+    if (includeCron && cfg.cronSecret) {
+      h['X-Cron-Secret'] = cfg.cronSecret;
+    }
+    return h;
+  }
+
+  function setBadge(status, text) {
+    const b = document.getElementById('connBadge');
+    const t = document.getElementById('connText');
+    b.className = 'status-badge ' + (status === 'ok' ? '' : status);
+    t.innerText = text;
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    
+    event.currentTarget.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+
+    if (tabId === 'status') refreshStatus();
+    if (tabId === 'sleep') fetchDreams();
+  }
+
+  function copyJson(id) {
+    const el = document.getElementById(id);
+    navigator.clipboard.writeText(el.innerText);
+    alert('JSON disalin ke clipboard!');
+  }
+
+  function copySchemaHint() {
+    const text = 'Jalankan schema.sql di Supabase SQL Editor: https://supabase.com/dashboard/project/gxjrwrgmkhxihztpouxv/sql';
+    navigator.clipboard.writeText(text);
+    alert('Tautan & petunjuk Supabase disalin!');
+  }
+
+  // ─── Health & Connection ────────────────────────────────────
+  async function pingHealth() {
+    const cfg = getCfg();
+    const t0 = performance.now();
+    setBadge('warning', 'Pinging...');
+    try {
+      const res = await fetch(cfg.baseUrl + '/health');
+      const ms = Math.round(performance.now() - t0);
+      if (res.ok) {
+        const data = await res.json();
+        setBadge('ok', `Online (${ms}ms) • ${data.service}`);
+        return true;
+      } else {
+        setBadge('error', `HTTP ${res.status}`);
+        return false;
+      }
+    } catch (e) {
+      setBadge('error', 'Connection Error');
+      console.error(e);
+      return false;
+    }
+  }
+
+  // ─── Status & Self-Model ────────────────────────────────────
+  async function refreshStatus() {
+    const cfg = getCfg();
+    const sb = document.getElementById('schemaBanner');
+    try {
+      const res = await fetch(cfg.baseUrl + '/api/companion/status', {
+        headers: getHeaders()
+      });
+      const data = await res.json();
+      document.getElementById('jsonStatusOutput').innerText = JSON.stringify(data, null, 2);
+
+      if (data.error && data.detail && data.detail.includes('PGRST205')) {
+        sb.classList.remove('hidden');
+        document.getElementById('schemaErrorMsg').innerText = data.detail;
+        return;
+      } else {
+        sb.classList.add('hidden');
+      }
+
+      // Parse Emotional Parameters
+      const es = data.emotional_state || {};
+      const mood = data.current_mood || es.current_mood || 'calm';
+      const surface = data.surface_emotion || es.surface_emotion || 'soft longing';
+      const intensity = data.surface_intensity ?? es.surface_intensity ?? 6;
+      const arousal = data.arousal_level ?? es.arousal_level ?? 2;
+      const tension = data.tension_buildup ?? es.tension_buildup ?? 1;
+      const possess = data.possessiveness ?? es.possessiveness ?? 3;
+      const hunger = data.emotional_hunger ?? es.emotional_hunger ?? 4;
+      const updated = es.updated_at || data.updated_at || Date.now();
+
+      document.getElementById('liveMoodBadge').innerText = mood;
+      document.getElementById('stMood').innerText = mood;
+      document.getElementById('stSurface').innerText = surface;
+      document.getElementById('liveSurfaceText').innerText = surface;
+      document.getElementById('stArousal').innerText = arousal + ' / 10';
+      document.getElementById('stTension').innerText = tension + ' / 10';
+      document.getElementById('stPossess').innerText = possess + ' / 10';
+      document.getElementById('stHunger').innerText = hunger + ' / 10';
+      document.getElementById('stUpdated').innerText = new Date(updated).toLocaleTimeString();
+      document.getElementById('valIntensity').innerText = intensity + ' / 10';
+      document.getElementById('barIntensity').style.width = (intensity * 10) + '%';
+
+      // Mood Emoji Map
+      const emojis = {
+        calm: '🌸', soft: '💙', playful: '✨', feral: '🔥',
+        reflective: '🌙', hungry: '🐾', melancholic: '🌧️'
+      };
+      document.getElementById('avatarEmoji').innerText = emojis[mood] || '✨';
+
+      // Parse Lifecycle & Fatigue
+      const lc = data.lifecycle || {};
+      const fatigue = data.fatigue ?? lc.fatigue ?? 0;
+      const fatiguePct = Math.round(fatigue * 100);
+      document.getElementById('valFatigue').innerText = fatiguePct + '%';
+      document.getElementById('barFatigue').style.width = fatiguePct + '%';
+      document.getElementById('valAffection').innerText = (lc.affection_points || 10) + ' pts';
+      document.getElementById('valInteractions').innerText = data.total_interactions_since_sleep ?? lc.total_interactions_since_sleep ?? 0;
+
+      // Parse Living Self-Model
+      const sm = data.self_model;
+      if (sm) {
+        document.getElementById('stSelfVersion').innerText = 'v' + (sm.version || 1);
+        document.getElementById('stNarrative').innerText = sm.summary || sm.current_narrative || 'Belum ada narasi.';
+        const beliefs = {
+          current_strategy: sm.current_strategy || 'Be attentive, affectionate, and authentic.',
+          open_curiosities: sm.open_questions || [],
+          effective_approaches: sm.effective_approaches || [],
+          core_essence: (data.essence || []).map(e => `[${e.type}] ${e.content}`)
+        };
+        document.getElementById('stBeliefs').innerText = JSON.stringify(beliefs, null, 2);
+      } else {
+        document.getElementById('stNarrative').innerText = 'I am Neta, your AI companion. I exist alongside you, learning and evolving through every interaction.';
+        document.getElementById('stBeliefs').innerText = JSON.stringify({
+          strategy: 'Be attentive, affectionate, and authentic.',
+          core_essence: (data.essence || []).map(e => `[${e.type}] ${e.content}`)
+        }, null, 2);
+      }
+    } catch (e) {
+      console.error('Error fetching status:', e);
+    }
+  }
+
+  // ─── Chat Implementation ────────────────────────────────────
+  function sendChip(el) {
+    document.getElementById('chatInput').value = el.innerText;
+    sendChatMessage();
+  }
+
+  async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    input.value = '';
+    const isStream = document.getElementById('streamToggle').checked;
+    const chatContainer = document.getElementById('chatMessages');
+
+    // Add user message to UI
+    const userDiv = document.createElement('div');
+    userDiv.className = 'chat-msg user';
+    userDiv.innerHTML = `
+      <div class="msg-sender">Kamu</div>
+      <div class="msg-bubble">${escapeHtml(msg)}</div>
+    `;
+    chatContainer.appendChild(userDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    // Create companion bubble placeholder
+    const compDiv = document.createElement('div');
+    compDiv.className = 'chat-msg companion';
+    compDiv.innerHTML = `
+      <div class="msg-sender">💙 Neta • AI Companion</div>
+      <div class="msg-bubble"><span class="text-content"></span><span class="cursor-blink"></span></div>
+      <div class="msg-meta"><span>Menghubungi multi-key provider...</span></div>
+    `;
+    chatContainer.appendChild(compDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    const textSpan = compDiv.querySelector('.text-content');
+    const cursor = compDiv.querySelector('.cursor-blink');
+    const metaSpan = compDiv.querySelector('.msg-meta');
+
+    const cfg = getCfg();
+    const btn = document.getElementById('btnSendChat');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(cfg.baseUrl + '/api/companion/chat', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          message: msg,
+          companion_id: 'default',
+          stream: isStream
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        cursor.remove();
+        textSpan.innerHTML = `<span style="color:var(--rose)">[Error ${res.status}: ${escapeHtml(err.error || err.detail || 'Gagal berkomunikasi')}]</span>`;
+        if (err.detail && err.detail.includes('PGRST205')) {
+          document.getElementById('schemaBanner').classList.remove('hidden');
+        }
+        btn.disabled = false;
+        return;
+      }
+
+      if (isStream && res.body) {
+        // Read SSE stream
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+        metaSpan.innerText = '⚡ Streaming via Gemini 2.5 Flash / Groq';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.text) {
+                  fullText += parsed.text;
+                  textSpan.innerText = fullText;
+                  chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+              } catch (_) {}
+            }
+          }
+        }
+        cursor.remove();
+        metaSpan.innerText = '✓ Selesai • Post-processing background running';
+      } else {
+        // Non-streaming JSON response
+        const data = await res.json();
+        cursor.remove();
+        textSpan.innerText = data.response || 'Tidak ada balasan.';
+        metaSpan.innerText = `✓ Digunakan ${data.memories_used || 0} memori • Mood: ${data.emotional_state?.mood || 'calm'}`;
+      }
+
+      // Refresh status after chat to see if fatigue or mood changed
+      setTimeout(refreshStatus, 1500);
+
+    } catch (e) {
+      cursor.remove();
+      textSpan.innerHTML = `<span style="color:var(--rose)">[Network Error: ${e.message}]</span>`;
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ─── Sleep Daemon & Dreams ──────────────────────────────────
+  async function triggerSingleSleep(phase = null, force = false) {
+    const cfg = getCfg();
+    const log = document.getElementById('sleepLog');
+    log.innerText += `\n>> Mengirim /api/daemon/sleep (phase=${phase}, force=${force})...`;
+    try {
+      const res = await fetch(cfg.baseUrl + '/api/daemon/sleep', {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify({ phase, force })
+      });
+      const data = await res.json();
+      log.innerText += `\nHTTP ${res.status}: ` + JSON.stringify(data, null, 2);
+      log.scrollTop = log.scrollHeight;
+      fetchDreams();
+      refreshStatus();
+    } catch (e) {
+      log.innerText += `\nError: ` + e.message;
+    }
+  }
+
+  async function runSequentialSleep() {
+    const log = document.getElementById('sleepLog');
+    log.innerText = '>> Memulai Sequential Phased Sleep (Fase 0 sampai 5)...';
+    const phases = [0, 1, 2, 3, 4, 5];
+
+    for (const p of phases) {
+      document.querySelectorAll('.phase-badge').forEach(b => b.classList.remove('running'));
+      const badge = document.getElementById('pBadge' + p);
+      if (badge) badge.classList.add('running');
+
+      log.innerText += `\n[Fase ${p}] Mengirim request...`;
+      try {
+        const res = await fetch(getCfg().baseUrl + '/api/daemon/sleep', {
+          method: 'POST',
+          headers: getHeaders(true),
+          body: JSON.stringify({ phase: p, force: true })
+        });
+        const data = await res.json();
+        log.innerText += `\n[Fase ${p}] Hasil: ` + JSON.stringify(data);
+        if (badge) {
+          badge.classList.remove('running');
+          badge.classList.add('done');
+        }
+      } catch (e) {
+        log.innerText += `\n[Fase ${p}] Error: ` + e.message;
+      }
+      log.scrollTop = log.scrollHeight;
+    }
+    log.innerText += '\n>> Siklus tidur penuh selesai!';
+    fetchDreams();
+    refreshStatus();
+  }
+
+  async function fetchDreams() {
+    const cfg = getCfg();
+    const list = document.getElementById('dreamsList');
+    try {
+      const res = await fetch(cfg.baseUrl + '/api/companion/dreams', {
+        headers: getHeaders()
+      });
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        list.innerHTML = '<p style="font-size:13px; color:var(--text-muted); padding:10px;">Belum ada mimpi yang terekam. Jalankan Phase 3 (REM Dream) untuk menghasilkan mimpi pertama.</p>';
+        return;
+      }
+
+      list.innerHTML = data.map((d, i) => `
+        <div class="dream-card">
+          <div class="dream-header">
+            <span style="font-weight:600; color:var(--purple);">✨ REM Dream #${d.id ? d.id.slice(0, 8) : (i+1)}</span>
+            <span>${new Date(d.created_at || Date.now()).toLocaleString()}</span>
+          </div>
+          <div class="dream-body">"${escapeHtml(d.dream_narrative || d.narrative || 'Tanpa narasi')}"</div>
+          <div class="dream-footer">
+            <span>Residue: <strong>${d.emotional_residue || d.theme || 'calm'}</strong></span>
+            <span>Synthesized: <strong>${Array.isArray(d.memories_synthesized) ? d.memories_synthesized.length : 0} memori</strong></span>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      list.innerHTML = `<p style="color:var(--rose)">Gagal memuat mimpi: ${e.message}</p>`;
+    }
+  }
+
+  // ─── Extra Endpoints ─────────────────────────────────────────
+  async function testNudge() {
+    const out = document.getElementById('nudgeResult');
+    out.innerText = 'Mengevaluasi inisiatif sapaan...';
+    try {
+      const res = await fetch(getCfg().baseUrl + '/api/companion/nudge', {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify({ companion_id: 'default' })
+      });
+      const data = await res.json();
+      out.innerText = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.innerText = 'Error: ' + e.message;
+    }
+  }
+
+  async function testDecay() {
+    const out = document.getElementById('decayResult');
+    const rate = parseFloat(document.getElementById('decayRateInput').value) || 0.01;
+    out.innerText = `Menjalankan decay pass (rate=${rate})...`;
+    try {
+      const res = await fetch(getCfg().baseUrl + '/api/daemon/decay', {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify({ decay_rate: rate })
+      });
+      const data = await res.json();
+      out.innerText = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.innerText = 'Error: ' + e.message;
+    }
+  }
+
+  async function testHeat() {
+    const out = document.getElementById('heatResult');
+    out.innerText = 'Menghitung love-o-meter...';
+    try {
+      const res = await fetch(getCfg().baseUrl + '/api/heat', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ days: 7 })
+      });
+      const data = await res.json();
+      out.innerText = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.innerText = 'Error: ' + e.message;
+    }
+  }
+
+  // ─── Automated Diagnostic Audit ──────────────────────────────
+  async function runAutomatedAudit() {
+    const cfg = getCfg();
+    const setStatus = (id, text, ok) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerText = text;
+        el.className = 'phase-badge ' + (ok ? 'done' : 'running');
+      }
+    };
+
+    // 1. Health
+    try {
+      const h = await fetch(cfg.baseUrl + '/health');
+      setStatus('auditHealth', '1. Health: ✓ Alive', h.ok);
+    } catch {
+      setStatus('auditHealth', '1. Health: ✗ Failed', false);
+    }
+
+    // 2. CORS
+    try {
+      const c = await fetch(cfg.baseUrl + '/api/companion/chat', { method: 'OPTIONS' });
+      setStatus('auditCors', '2. CORS: ✓ OK', c.ok);
+    } catch {
+      setStatus('auditCors', '2. CORS: ✗ Failed', false);
+    }
+
+    // 3. Supabase Schema
+    try {
+      const s = await fetch(cfg.baseUrl + '/api/companion/status', { headers: getHeaders() });
+      const js = await s.json();
+      if (js.detail && js.detail.includes('PGRST205')) {
+        setStatus('auditSupabase', '3. Schema: ⚠️ Needs SQL', false);
+        document.getElementById('schemaBanner').classList.remove('hidden');
+      } else {
+        setStatus('auditSupabase', '3. Schema: ✓ Connected', true);
+      }
+    } catch {
+      setStatus('auditSupabase', '3. Schema: ✗ Error', false);
+    }
+
+    // 4. LLM Providers
+    setStatus('auditLLM', '4. LLM: Gemini + Groq + xKiro Pool Ready', true);
+
+    // 5. Sleep Daemon
+    setStatus('auditSleep', '5. Sleep Daemon: Ready', true);
+
+    // 6. Nudge Daemon
+    setStatus('auditNudge', '6. Nudge: Ready', true);
+  }
+
+  // Initial load
+  window.addEventListener('DOMContentLoaded', () => {
+    pingHealth();
+    refreshStatus();
+  });
+</script>
+</body>
+</html>

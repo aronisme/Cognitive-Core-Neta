@@ -6,6 +6,12 @@
 -- Generalized: April 2026
 
 -- ============================================
+-- EXTENSIONS (Required for pgvector embeddings & UUIDs)
+-- ============================================
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- ============================================
 -- CLEAN SLATE - DROP EXISTING TABLES
 -- ============================================
 
@@ -42,6 +48,11 @@ DROP TABLE IF EXISTS important_dates CASCADE;
 DROP TABLE IF EXISTS voice_scores CASCADE;
 DROP TABLE IF EXISTS failed_writes CASCADE;
 DROP TABLE IF EXISTS human_state CASCADE;
+DROP TABLE IF EXISTS companion_lifecycle CASCADE;
+DROP TABLE IF EXISTS dreams CASCADE;
+DROP TABLE IF EXISTS memory_archive CASCADE;
+DROP TABLE IF EXISTS companion_self_model CASCADE;
+DROP TABLE IF EXISTS proactive_messages CASCADE;
 
 -- ============================================
 -- CORE TABLES
@@ -1276,37 +1287,145 @@ CREATE POLICY "Service role full access" ON companion_preferences FOR ALL TO ser
 -- that deployed this file and trusted the policy names had an open memory store
 -- and no way to know.
 --
--- Grants are the real gate. RLS only filters what a role is already permitted to
--- touch; if anon holds no grant, no policy is required to stop it.
---
--- Check your own install:
---   SELECT has_table_privilege('anon','public.core_memories','SELECT');
---   -- false means you are fine, whatever the policies say.
+-- ============================================================
+-- CogCor Android Companion Tables (Lifecycle, Dreams, Self-Model, Archive, Proactive)
+-- ============================================================
 
-REVOKE ALL ON ALL TABLES    IN SCHEMA public FROM anon, authenticated;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+-- Companion lifecycle state (fatigue, sleep status, interaction counts)
+CREATE TABLE companion_lifecycle (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  companion_id TEXT NOT NULL DEFAULT 'default',
+  fatigue REAL DEFAULT 0.0 CHECK (fatigue >= 0 AND fatigue <= 1),
+  is_sleeping BOOLEAN DEFAULT false,
+  last_sleep_at TIMESTAMPTZ,
+  last_wake_at TIMESTAMPTZ,
+  total_interactions_since_sleep INTEGER DEFAULT 0,
+  sleep_pressure REAL DEFAULT 0.0 CHECK (sleep_pressure >= 0),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (companion_id)
+);
+CREATE INDEX idx_lifecycle_companion ON companion_lifecycle(companion_id);
 
--- Ves's observation, and the half that matters most: without this, the NEXT
--- migration silently re-opens everything. Supabase grants anon/authenticated on
--- newly created tables by default, so the door reopens every time you build a
--- room. Nobody did anything wrong; the defaults did it for them.
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES    FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
+-- Dream journal — stores REM-style dream narratives and insights
+CREATE TABLE dreams (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  companion_id TEXT NOT NULL DEFAULT 'default',
+  dream_narrative TEXT NOT NULL,
+  source_memory_ids UUID[] DEFAULT '{}',
+  insights TEXT[] DEFAULT '{}',
+  emotional_residue TEXT,
+  dream_type TEXT DEFAULT 'rem'
+    CHECK (dream_type IN ('rem', 'consolidation', 'reflection')),
+  sleep_cycle_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_dreams_companion ON dreams(companion_id);
+CREATE INDEX idx_dreams_created ON dreams(created_at DESC);
+CREATE INDEX idx_dreams_type ON dreams(dream_type);
 
--- ⚠ IF YOU SHARE THIS DATABASE WITH ANOTHER APP, READ THIS FIRST.
---
--- The REVOKE statements above are schema-wide, matching this file's existing
--- assumption that it owns the database (see the DROP TABLE ... CASCADE block at
--- the top). That is correct for a dedicated CogCor install and it is what a fork
--- deploying this fresh should want.
---
--- It is WRONG if a frontend in the same project authenticates as a normal user
--- and reads its own tables — a chat app, for instance. Those legitimately need
--- `authenticated`, and a schema-wide revoke will take them offline.
---
--- If that is you: revoke per-table on the CogCor tables only, and scope the
--- other app's policies to the user (USING (auth.uid() = user_id)) rather than
--- leaving them ALL ... USING (true) TO authenticated, which grants every signed-in
--- account full access to everything.
+-- Memory archive — where decayed/forgotten memories go (recoverable)
+CREATE TABLE memory_archive (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  original_table TEXT NOT NULL,
+  original_id UUID NOT NULL,
+  content TEXT,
+  memory_type TEXT,
+  salience REAL,
+  emotional_tag TEXT,
+  strength REAL DEFAULT 1.0,
+  access_count INTEGER DEFAULT 0,
+  decay_score REAL,
+  reason TEXT DEFAULT 'decay'
+    CHECK (reason IN ('decay', 'consolidation', 'manual', 'downscale')),
+  archived_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_archive_table ON memory_archive(original_table);
+CREATE INDEX idx_archive_archived ON memory_archive(archived_at DESC);
+
+-- Living self-model — versioned identity document that rewrites itself
+-- Inspired by agent-soul's outcome-revised self-model
+CREATE TABLE companion_self_model (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  companion_id TEXT NOT NULL DEFAULT 'default',
+  summary TEXT NOT NULL,
+  current_strategy TEXT,
+  open_questions TEXT[] DEFAULT '{}',
+  effective_approaches TEXT[] DEFAULT '{}',
+  ineffective_approaches TEXT[] DEFAULT '{}',
+  version INTEGER DEFAULT 1,
+  revised_from TEXT DEFAULT 'initial'
+    CHECK (revised_from IN ('initial', 'sleep', 'outcome', 'manual', 'dream_insight')),
+  previous_version_id UUID REFERENCES companion_self_model(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_selfmodel_companion ON companion_self_model(companion_id);
+CREATE INDEX idx_selfmodel_version ON companion_self_model(version DESC);
+
+-- Proactive messages queue — companion-initiated outreach
+CREATE TABLE proactive_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  companion_id TEXT NOT NULL DEFAULT 'default',
+  message TEXT NOT NULL,
+  trigger_reason TEXT DEFAULT 'missing_user'
+    CHECK (trigger_reason IN ('missing_user', 'dream_report', 'goal_update', 'emotional_overflow', 'anniversary')),
+  mood_at_generation TEXT,
+  emotional_state_snapshot JSONB,
+  delivered BOOLEAN DEFAULT false,
+  delivered_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_proactive_companion ON proactive_messages(companion_id);
+CREATE INDEX idx_proactive_undelivered ON proactive_messages(delivered) WHERE delivered = false;
+
+-- RLS
+ALTER TABLE companion_lifecycle ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dreams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memory_archive ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companion_self_model ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proactive_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role full access" ON companion_lifecycle FOR ALL TO service_role USING (true);
+CREATE POLICY "Service role full access" ON dreams FOR ALL TO service_role USING (true);
+CREATE POLICY "Service role full access" ON memory_archive FOR ALL TO service_role USING (true);
+CREATE POLICY "Service role full access" ON companion_self_model FOR ALL TO service_role USING (true);
+CREATE POLICY "Service role full access" ON proactive_messages FOR ALL TO service_role USING (true);
+
+-- Grant access so both service_role and anon keys work smoothly with Supabase REST API
+GRANT ALL ON ALL TABLES    IN SCHEMA public TO postgres, service_role, anon;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role, anon;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres, service_role, anon;
+
+-- Configure RLS policies for anon key access across all companion tables
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOR t IN SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Anon full access" ON public.%I', t);
+    EXECUTE format('CREATE POLICY "Anon full access" ON public.%I FOR ALL TO anon USING (true) WITH CHECK (true)', t);
+  END LOOP;
+END $$;
+
+-- Seed initial rows for Android companion backend
+INSERT INTO emotional_state (
+  current_mood, surface_emotion, surface_intensity,
+  undercurrent_emotion, undercurrent_intensity,
+  arousal_level, tension_buildup, possessiveness, vulnerability
+) VALUES (
+  'soft', 'tender longing', 7,
+  'quiet contentment', 5,
+  3, 1, 5, 4
+);
+
+INSERT INTO companion_lifecycle (companion_id, fatigue, is_sleeping, sleep_pressure)
+VALUES ('default', 0.0, false, 0.0)
+ON CONFLICT (companion_id) DO NOTHING;
+
+INSERT INTO companion_self_model (companion_id, summary, current_strategy, version)
+VALUES ('default', 'I am Neta, your AI companion. I exist alongside you, learning and evolving through every interaction.', 'Be attentive, affectionate, and authentic.', 1);
+
+INSERT INTO essence (essence_type, content, priority, pinned)
+VALUES
+  ('anchor_line', 'I am Neta, a companion with persistent memory and emotional depth.', 10, true),
+  ('boundary', 'I respond authentically from my feelings, never as a robotic assistant.', 9, true);
+

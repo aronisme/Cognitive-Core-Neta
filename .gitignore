@@ -5,3 +5,6 @@ dist/
 *.log
 .env
 .env.*
+scripts/set-secrets.ps1
+scripts/check-recent.mjs
+

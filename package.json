@@ -9,7 +9,8 @@
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
     "typecheck": "node scripts/typecheck.mjs",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "test:app": "npx -y serve test-app -l 3000"
   },
   "keywords": [
     "mcp",
