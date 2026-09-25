@@ -232,7 +232,19 @@ describe('Telegram Companion Tone & Context', () => {
     expect(prompt).toContain('WAKTU LOKAL (WIB / ACEH — UTC+7)');
     expect(prompt).toContain('=== GAYA BAHASA (INDONESIAN YOUTH / NATURAL CASUAL) ===');
     expect(prompt).toContain('"aku" dan "kamu"');
+    expect(prompt).toContain('JANGAN PERNAH mengulang-ulang menanyakan "kenapa belum tidur"');
+  });
+
+  it('injects known human profiles into the system prompt', () => {
+    const people = [
+      { name: 'Aron Muhammad', category: 'core', content: 'Lahir 1996, developer aplikasi & web, suka ngoding dan AI' }
+    ];
+    const prompt = buildCompanionPrompt([], null, [], [], null, undefined, people);
+    expect(prompt).toContain('=== PROFIL ORANG YANG SEDANG BICARA (THE HUMAN) ===');
+    expect(prompt).toContain('Aron Muhammad');
+    expect(prompt).toContain('Lahir 1996, developer aplikasi & web');
   });
 });
+
 
 

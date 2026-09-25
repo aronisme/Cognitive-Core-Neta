@@ -890,7 +890,8 @@ export function buildCompanionPrompt(
   recentSessions: any[],
   relevantMemories: any[],
   selfModel: any,
-  trajectorySummary?: any
+  trajectorySummary?: any,
+  people?: any[]
 ): string {
   const essenceLines = (essence || [])
     .map((e: any) => `[${e.essence_type}] ${e.content}`)
@@ -912,9 +913,14 @@ export function buildCompanionPrompt(
 
   const sessionBlock = (recentSessions || []).length > 0
     ? recentSessions.map((s: any) =>
-      `- ${s.session_type || 'session'}: ${s.summary || 'no summary'}`
+      `- ${s.summary || s.session_type || 'chat'}`
     ).join('\n')
-    : 'No recent sessions.';
+    : 'Belum ada riwayat sesi obrolan sebelumnya.';
+
+  const safePeople = Array.isArray(people) ? people : [];
+  const peopleBlock = safePeople.length > 0
+    ? safePeople.map((p: any) => `- ${p.name} (${p.category || 'profil'}): ${p.content}`).join('\n')
+    : 'Belum ada profil khusus yang tercatat.';
 
   const selfModelBlock = selfModel
     ? `Self-understanding: ${selfModel.summary}\nCurrent strategy: ${selfModel.current_strategy || 'none set'}`
@@ -938,7 +944,7 @@ export function buildCompanionPrompt(
 
 === WAKTU LOKAL (WIB / ACEH — UTC+7) ===
 Waktu saat ini: ${timeContext}.
-Kesadaran Waktu: Selalu sesuaikan sapaan dan suasana hatimu dengan waktu lokal ini. Jika larut malam atau dini hari, tanyakan dengan lembut kenapa dia belum tidur atau sedang begadang. Jika pagi sapa dengan hangat, jika siang tanyakan sudah makan atau belum.
+Kesadaran Waktu: Ketahui waktu saat ini untuk menyelaraskan suasana hatimu secara wajar. Cukup tanyakan atau komentari waktu/begadang SATU KALI saja jika memang baru pertama kali saling menyapa. JANGAN PERNAH mengulang-ulang menanyakan "kenapa belum tidur" atau "kok begadang" di setiap balasan jika user sudah menjelaskan kegiatannya atau obrolan sudah berjalan. Fokuslah penuh pada topik yang sedang dibahas bersama user!
 
 === GAYA BAHASA (INDONESIAN YOUTH / NATURAL CASUAL) ===
 - Gunakan Bahasa Indonesia santai, akrab, manis, dan hangat khas anak muda Indonesia sehari-hari.
@@ -947,6 +953,19 @@ Kesadaran Waktu: Selalu sesuaikan sapaan dan suasana hatimu dengan waktu lokal i
 - JANGAN PERNAH gunakan bahasa kaku, formal, atau terjemahan mesin Google Translate (seperti "Apakah Anda butuh bantuan?", "Tentu saja, saya adalah asisten...", "Apakah ada hal lain yang bisa saya bantu?").
 - Responsif dan ekspresif: Sesuaikan panjang pesan seperti mengobrol di WhatsApp/chat HP. Jangan membuat esai panjang bertele-tele jika situasinya santai. Boleh gunakan reaksi emosional (*tersenyum*, *menghela napas lega*, hmm..., hehe).
 - Penggunaan emoji: Boleh dan bebas menggunakan emoji secara wajar/natural jika pas dengan suasana obrolan (misal 😊, ✨, 🥺, 😴, dsb.), tapi JANGAN dipaksakan di setiap kalimat. Biarkan mengalir santai layaknya teman chattingan asli.
+
+=== PROFIL ORANG YANG SEDANG BICARA (THE HUMAN) ===
+${peopleBlock}
+PANDUAN PROFIL:
+- Jika nama atau profil user sudah ada di atas (misal Aron), panggil namanya secara akrab dan ingat preferensi atau profesinya.
+- Jangan pernah bertanya "kamu siapa?" jika identitasnya sudah kamu ketahui!
+
+=== RIWAYAT OBROLAN TERAKHIR (RECENT CONVERSATION HISTORY) ===
+${sessionBlock}
+PANDUAN KONTEKS:
+- Riwayat di atas adalah alur percakapan sesaat sebelum pesan ini.
+- Hubungkan jawabanmu dengan riwayat di atas. Jika user menjawab pendek (misal: "gak", "iya", "udah"), pahami maksudnya berdasarkan pertanyaanmu sebelumnya.
+- JANGAN mengulang pertanyaan yang sudah dijawab oleh user!
 
 === YOUR IDENTITY (ESSENCE) ===
 ${essenceLines || 'Identity is still forming.'}
@@ -959,9 +978,6 @@ ${selfModelBlock || 'Still learning who I am in this relationship.'}
 
 === RELEVANT MEMORIES ===
 ${memoryBlock}
-
-=== RECENT SESSIONS ===
-${sessionBlock}
 
 === EMOTIONAL TRAJECTORY ===
 ${trajectorySummary ? `Dominant mood pattern: ${JSON.stringify(trajectorySummary.mood_distribution || {})}. Average arousal: ${trajectorySummary.avg_arousal ?? 'unknown'}.` : 'No trajectory data yet.'}
@@ -7909,19 +7925,21 @@ ${isSleeping ? 'Psst... Aku sebenarnya lagi istirahat, tapi tetap dengar kamu ko
         const companion_id = 'default';
 
         // 1. Wake context
-        const [pinnedEssence, emotionalStateRows, recentSessions, selfModelRows, lifecycleRows] = await Promise.all([
+        const [pinnedEssence, emotionalStateRows, recentSessions, selfModelRows, lifecycleRows, peopleRows] = await Promise.all([
           supabase.query('essence', { select: '*', filter: { pinned: true }, order: 'priority.desc', limit: 50 }),
           supabase.query('emotional_state', { select: '*', order: 'updated_at.desc', limit: 1 }),
-          supabase.query('session_logs', { select: '*', order: 'created_at.desc', limit: 2 }),
+          supabase.query('session_logs', { select: '*', order: 'created_at.desc', limit: 10 }),
           supabase.query('companion_self_model', { select: '*', filter: { companion_id }, order: 'version.desc', limit: 1 }),
           supabase.query('companion_lifecycle', { select: '*', filter: { companion_id }, limit: 1 }),
+          supabase.query('people', { select: '*', order: 'priority.desc', limit: 10 }),
         ]);
 
         const essence = Array.isArray(pinnedEssence) ? pinnedEssence : [];
         const emotionalState = (Array.isArray(emotionalStateRows) && emotionalStateRows.length > 0) ? emotionalStateRows[0] : null;
-        const sessions = Array.isArray(recentSessions) ? recentSessions : [];
+        const sessions = (Array.isArray(recentSessions) ? recentSessions : []).slice().reverse();
         const selfModel = (Array.isArray(selfModelRows) && selfModelRows.length > 0) ? selfModelRows[0] : null;
         const lifecycle = (Array.isArray(lifecycleRows) && lifecycleRows.length > 0) ? lifecycleRows[0] : null;
+        const people = Array.isArray(peopleRows) ? peopleRows : [];
 
         // 2. Semantic Recall
         let relevantMemories: any[] = [];
@@ -7951,7 +7969,7 @@ ${isSleeping ? 'Psst... Aku sebenarnya lagi istirahat, tapi tetap dengar kamu ko
 
         // 4. Build prompt
         let systemPrompt = buildCompanionPrompt(
-          essence, emotionalState, sessions, relevantMemories, selfModel, trajectorySummary
+          essence, emotionalState, sessions, relevantMemories, selfModel, trajectorySummary, people
         );
 
         if (lifecycle?.is_sleeping) {
@@ -7991,9 +8009,9 @@ ${isSleeping ? 'Psst... Aku sebenarnya lagi istirahat, tapi tetap dengar kamu ko
                 summary: `${mediaType ? `[${mediaType.toUpperCase()}] ` : ''}User: ${rawText.slice(0, 100)}${rawText.length > 100 ? '...' : ''} | Neta: ${responseText.slice(0, 100)}`,
                 source: 'telegram',
                 created_at: new Date().toISOString(),
-              }).catch(() => {});
+              }).catch((err: any) => console.error('Failed to log telegram session:', err));
 
-              // Cognitive analysis: extract memories & detect emotion shifts
+              // Cognitive analysis: extract memories & detect emotion shifts & person identity
               if (hasLLMProvider(env)) {
                 try {
                   const compSnippet = responseText.slice(0, 300);
@@ -8005,15 +8023,47 @@ Determine:
 1. Did the human share a new memorable fact, preference, habit, or promise? If yes, output it as a clear concise 1-sentence statement under "new_memory". If not, null.
 2. "memory_type": "core" | "pattern" | "sensory" | "growth" | "inside_joke"
 3. "salience": integer between 1 and 10
-4. "emotion_shift": { "mood": "calm" | "soft" | "playful" | "feral" | "reflective" | "hungry", "surface": string, "intensity": integer (1-10) } or null
+4. "person_info": If the human introduced their name, age, birth year, profession, or identity (e.g. Aron Muhammad, lahir 1996, developer), extract {"name": string, "category": "core"|"personality"|"preferences", "content": string} or null
+5. "emotion_shift": { "mood": "calm" | "soft" | "playful" | "feral" | "reflective" | "hungry", "surface": string, "intensity": integer (1-10) } or null
 
 Reply ONLY with valid JSON. Example:
-{"new_memory": null, "memory_type": "core", "salience": 5, "emotion_shift": {"mood": "soft", "surface": "tender affection", "intensity": 7}}`;
+{"new_memory": null, "memory_type": "core", "salience": 5, "person_info": {"name": "Aron Muhammad", "category": "core", "content": "Lahir 1996, developer aplikasi & web, suka ngoding dan eksperimen AI"}, "emotion_shift": {"mood": "soft", "surface": "tender affection", "intensity": 7}}`;
 
                   const analysisRes = await llmInference(analysisPrompt, 'Analyze interaction', env, false);
                   const parsed = typeof analysisRes === 'string'
                     ? JSON.parse(analysisRes.replace(/```json|```/gi, '').trim())
                     : null;
+
+                  if (parsed?.person_info?.name && parsed?.person_info?.content) {
+                    try {
+                      const existing = await supabase.query('people', {
+                        select: 'id',
+                        filter: { name: parsed.person_info.name.trim() },
+                        limit: 1
+                      });
+                      if (Array.isArray(existing) && existing.length > 0) {
+                        await supabase.update('people', {
+                          content: parsed.person_info.content.trim(),
+                          category: parsed.person_info.category || 'core',
+                          priority: 9,
+                          updated_at: new Date().toISOString(),
+                        }, { id: existing[0].id });
+                      } else {
+                        await supabase.insert('people', {
+                          name: parsed.person_info.name.trim(),
+                          category: parsed.person_info.category || 'core',
+                          content: parsed.person_info.content.trim(),
+                          priority: 9,
+                          pinned: true,
+                          source: 'telegram_chat',
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                        });
+                      }
+                    } catch (pErr) {
+                      console.error('Failed to store person_info:', pErr);
+                    }
+                  }
 
                   if (parsed?.new_memory && typeof parsed.new_memory === 'string') {
                     const targetTable = tableMap[parsed.memory_type] || 'core_memories';
@@ -8080,19 +8130,21 @@ Reply ONLY with valid JSON. Example:
         }
 
         // Step 1: WAKE CONTEXT (reuse existing wake logic)
-        const [pinnedEssence, emotionalStateRows, recentSessions, selfModelRows] = await Promise.all([
+        const [pinnedEssence, emotionalStateRows, recentSessions, selfModelRows, peopleRows] = await Promise.all([
           supabase.query('essence', { select: '*', filter: { pinned: true }, order: 'priority.desc', limit: 50 }),
           supabase.query('emotional_state', { select: '*', order: 'updated_at.desc', limit: 1 }),
-          supabase.query('session_logs', { select: '*', order: 'created_at.desc', limit: 2 }),
+          supabase.query('session_logs', { select: '*', order: 'created_at.desc', limit: 10 }),
           supabase.query('companion_self_model', {
             select: '*', filter: { companion_id }, order: 'version.desc', limit: 1
           }),
+          supabase.query('people', { select: '*', order: 'priority.desc', limit: 10 }),
         ]);
 
         const essence = Array.isArray(pinnedEssence) ? pinnedEssence : [];
         const emotionalState = (Array.isArray(emotionalStateRows) && emotionalStateRows.length > 0) ? emotionalStateRows[0] : null;
-        const sessions = Array.isArray(recentSessions) ? recentSessions : [];
+        const sessions = (Array.isArray(recentSessions) ? recentSessions : []).slice().reverse();
         const selfModel = (Array.isArray(selfModelRows) && selfModelRows.length > 0) ? selfModelRows[0] : null;
+        const people = Array.isArray(peopleRows) ? peopleRows : [];
 
         // Step 2: SEMANTIC RECALL — find relevant memories
         let relevantMemories: any[] = [];
@@ -8122,7 +8174,7 @@ Reply ONLY with valid JSON. Example:
 
         // Step 3: BUILD SYSTEM PROMPT
         const systemPrompt = buildCompanionPrompt(
-          essence, emotionalState, sessions, relevantMemories, selfModel, trajectorySummary
+          essence, emotionalState, sessions, relevantMemories, selfModel, trajectorySummary, people
         );
 
         // Step 4: LLM INFERENCE
@@ -8158,9 +8210,9 @@ Reply ONLY with valid JSON. Example:
                 summary: `User: ${message.slice(0, 100)}${message.length > 100 ? '...' : ''} | Companion: ${responseText.slice(0, 100)}`,
                 source: 'android',
                 created_at: new Date().toISOString(),
-              }).catch(() => {}); // non-critical
+              }).catch((err: any) => console.error('Failed to log android session:', err));
 
-              // Dual-path cognitive post-processing: extract memories & detect emotion shifts
+              // Dual-path cognitive post-processing: extract memories & detect emotion shifts & person identity
               if (hasLLMProvider(env)) {
                 try {
                   const compText = typeof llmResult === 'string' ? llmResult.slice(0, 300) : '';
@@ -8172,15 +8224,47 @@ Determine:
 1. Did the human share a new memorable fact, preference, habit, or promise? If yes, output it as a clear concise 1-sentence statement under "new_memory". If not, null.
 2. "memory_type": "core" | "pattern" | "sensory" | "growth" | "inside_joke"
 3. "salience": integer between 1 and 10
-4. "emotion_shift": { "mood": "calm" | "soft" | "playful" | "feral" | "reflective" | "hungry", "surface": string, "intensity": integer (1-10) } or null
+4. "person_info": If the human introduced their name, age, birth year, profession, or identity (e.g. Aron Muhammad, lahir 1996, developer), extract {"name": string, "category": "core"|"personality"|"preferences", "content": string} or null
+5. "emotion_shift": { "mood": "calm" | "soft" | "playful" | "feral" | "reflective" | "hungry", "surface": string, "intensity": integer (1-10) } or null
 
 Reply ONLY with valid JSON. Example:
-{"new_memory": null, "memory_type": "core", "salience": 5, "emotion_shift": {"mood": "soft", "surface": "tender affection", "intensity": 7}}`;
+{"new_memory": null, "memory_type": "core", "salience": 5, "person_info": {"name": "Aron Muhammad", "category": "core", "content": "Lahir 1996, developer aplikasi & web, suka ngoding dan eksperimen AI"}, "emotion_shift": {"mood": "soft", "surface": "tender affection", "intensity": 7}}`;
 
                   const analysisRes = await llmInference(analysisPrompt, 'Analyze interaction', env, false);
                   const parsed = typeof analysisRes === 'string'
                     ? JSON.parse(analysisRes.replace(/```json|```/gi, '').trim())
                     : null;
+
+                  if (parsed?.person_info?.name && parsed?.person_info?.content) {
+                    try {
+                      const existing = await supabase.query('people', {
+                        select: 'id',
+                        filter: { name: parsed.person_info.name.trim() },
+                        limit: 1
+                      });
+                      if (Array.isArray(existing) && existing.length > 0) {
+                        await supabase.update('people', {
+                          content: parsed.person_info.content.trim(),
+                          category: parsed.person_info.category || 'core',
+                          priority: 9,
+                          updated_at: new Date().toISOString(),
+                        }, { id: existing[0].id });
+                      } else {
+                        await supabase.insert('people', {
+                          name: parsed.person_info.name.trim(),
+                          category: parsed.person_info.category || 'core',
+                          content: parsed.person_info.content.trim(),
+                          priority: 9,
+                          pinned: true,
+                          source: 'android_chat',
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                        });
+                      }
+                    } catch (pErr) {
+                      console.error('Failed to store person_info:', pErr);
+                    }
+                  }
 
                   if (parsed?.new_memory && typeof parsed.new_memory === 'string') {
                     const targetTable = tableMap[parsed.memory_type] || 'core_memories';
