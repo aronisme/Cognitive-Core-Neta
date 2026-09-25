@@ -8005,9 +8005,9 @@ ${isSleeping ? 'Psst... Aku sebenarnya lagi istirahat, tapi tetap dengar kamu ko
 
               // Log interaction to session_logs
               await supabase.insert('session_logs', {
-                session_type: mediaType ? `telegram_${mediaType}` : 'telegram_chat',
+                session_type: 'conversation',
                 summary: `${mediaType ? `[${mediaType.toUpperCase()}] ` : ''}User: ${rawText.slice(0, 100)}${rawText.length > 100 ? '...' : ''} | Neta: ${responseText.slice(0, 100)}`,
-                source: 'telegram',
+                source: mediaType ? `telegram_${mediaType}` : 'telegram',
                 created_at: new Date().toISOString(),
               }).catch((err: any) => console.error('Failed to log telegram session:', err));
 
@@ -8206,7 +8206,7 @@ Reply ONLY with valid JSON. Example:
               // Log the interaction as a session snippet
               const responseText = typeof llmResult === 'string' ? llmResult : '[streamed]';
               await supabase.insert('session_logs', {
-                session_type: 'android_chat',
+                session_type: 'conversation',
                 summary: `User: ${message.slice(0, 100)}${message.length > 100 ? '...' : ''} | Companion: ${responseText.slice(0, 100)}`,
                 source: 'android',
                 created_at: new Date().toISOString(),
